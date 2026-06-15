@@ -12,7 +12,7 @@ from pathlib import Path
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "YOUR_ODDS_API_KEY_HERE")
 
 # Settings
-MIN_EDGE_THRESHOLD = 0.02  # 2% minimum edge
+MIN_EDGE_THRESHOLD = 0.00  # 2% minimum edge
 
 def get_mlb_odds(date):
     """Fetch MLB odds"""
