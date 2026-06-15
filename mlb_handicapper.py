@@ -117,8 +117,11 @@ def main():
     handicapper = MLBHandicapper()
     best_bets = handicapper.find_best_bets()
     
-    output_file = f"./output/mlb_best_bets_{datetime.now().strftime('%Y%m%d')}.csv"
-    Path("output").mkdir(exist_ok=True)
+    output_dir = Path.cwd() / "output"
+    output_dir.mkdir(exist_ok=True)
+    output_file = output_dir / f"mlb_best_bets_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    print(f"Current directory: {Path.cwd()}")
     print(f"Writing CSV to: {output_file}")
     
     if best_bets:
