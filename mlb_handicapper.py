@@ -73,34 +73,23 @@ def main():
             if best_market:
                 break
 
-                    if best_market and len(best_market) >= 2:
-                for outcome in best_market:
-                    team_name = outcome.get("name", "")
-                    team_odds = outcome.get("price", 0)
-                    team_imp = implied_probability(team_odds)
+        if best_market and len(best_market) >= 2:
+            for outcome in best_market:
+                team_name = outcome.get("name", "")
+                team_odds = outcome.get("price", 0)
+                team_imp = implied_probability(team_odds)
 
-                    rows.append({
-                        "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
-                        "game": f"{away} @ {home}",
-                        "market": "h2h",
-                        "team": team_name,
-                        "odds": team_odds,
-                        "stake": 1.0,
-                        "proj_edge": 0.0,
-                        "result": "pending",
-                        "clv": 0.0,
-                        "notes": f"book={best_book}, implied_prob={round(team_imp, 3)}"
-                    })
+                rows.append({
                     "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
                     "game": f"{away} @ {home}",
                     "market": "h2h",
-                    "team": outcome.get("name", ""),
-                    "odds": outcome.get("price", ""),
+                    "team": team_name,
+                    "odds": team_odds,
                     "stake": 1.0,
                     "proj_edge": 0.0,
                     "result": "pending",
                     "clv": 0.0,
-                    "notes": f"book={best_book}"
+                    "notes": f"book={best_book}, implied_prob={round(team_imp, 3)}"
                 })
 
     if not rows:
