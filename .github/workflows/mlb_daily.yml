@@ -31,5 +31,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mlb-best-bets
-          path: output/mlb_best_bets_*.csv
+          path: ./output/mlb_best_bets_*.csv
           retention-days: 30
