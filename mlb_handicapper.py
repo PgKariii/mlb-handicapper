@@ -117,8 +117,9 @@ def main():
     handicapper = MLBHandicapper()
     best_bets = handicapper.find_best_bets()
     
-    output_file = f"output/mlb_best_bets_{datetime.now().strftime('%Y%m%d')}.csv"
+    output_file = f"./output/mlb_best_bets_{datetime.now().strftime('%Y%m%d')}.csv"
     Path("output").mkdir(exist_ok=True)
+    print(f"Writing CSV to: {output_file}")
     
     if best_bets:
         df = pd.DataFrame(best_bets)
