@@ -103,7 +103,7 @@ def main():
                 "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
                 "game": f"{away} @ {home}",
                 "market": "h2h",
-                "pick": pick_name,
+                "team": pick_name,
                 "odds": pick_odds,
                 "stake": 1.0,
                 "proj_edge": round((fair_prob - book_prob) * 100, 2),
@@ -113,12 +113,27 @@ def main():
             }
             rows.append(row)
 
+        if best_market and len(best_market) >= 2:
+            for outcome in best_market:
+                rows.append({
+                    "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
+                    "game": f"{away} @ {home}",
+                    "market": "h2h",
+                    "team": outcome.get("name", ""),
+                    "odds": outcome.get("price", ""),
+                    "stake": 1.0,
+                    "proj_edge": 0.0,
+                    "result": "pending",
+                    "clv": 0.0,
+                    "notes": f"book={best_book}"
+                })
+
     if not rows:
         rows = [{
             "date": datetime.now().strftime("%Y-%m-%d"),
             "game": "TEST GAME",
             "market": "h2h",
-            "pick": "TBD",
+            "team": "TBD",
             "odds": "No games returned",
             "stake": 1.0,
             "proj_edge": 0.0,
