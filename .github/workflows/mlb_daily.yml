@@ -19,17 +19,20 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip && pip install --no-cache-dir requests==2.31.0 numpy==1.26.4 pandas==2.2.2
+        run: python -m pip install --upgrade pip && pip install --no-cache-dir pandas==2.2.2
 
       - name: Create output folder
         run: mkdir -p output
 
       - name: Run MLB handicapper
-        run: ODDS_API_KEY="${{ secrets.ODDS_API_KEY }}" python mlb_handicapper.py
+        run: python mlb_handicapper.py
+
+      - name: List output files
+        run: ls -la output
 
       - name: Upload best bets CSV
         uses: actions/upload-artifact@v4
         with:
           name: mlb-best-bets
-          path: ./output/mlb_best_bets_*.csv
+          path: ./output/*.csv
           retention-days: 30
