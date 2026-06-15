@@ -3,6 +3,7 @@ from pathlib import Path
 import requests
 import pandas as pd
 import os
+import math
 
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "YOUR_ODDS_API_KEY_HERE")
 
@@ -40,6 +41,49 @@ def get_mlb_odds():
         print(f"Odds fetch error: {e}")
         return []
 
+def normalize_team(name):
+    return (name or "").strip().lower()
+
+def starter_strength(team_name, probable_pitcher=None):
+    return 0.00
+
+def bullpen_strength(team_name):
+    return 0.00
+
+def lineup_strength(team_name, lineup=None):
+    return 0.00
+
+def park_factor_adjustment(home_team=None, park_name=None):
+    return 0.00
+
+def weather_adjustment(temp_f=None, wind_mph=None, humidity=None):
+    adj = 0.00
+    if temp_f is not None:
+        if temp_f >= 85:
+            adj += 0.01
+        elif temp_f <= 55:
+            adj -= 0.01
+    if wind_mph is not None:
+        if wind_mph >= 12:
+            adj += 0.005
+    return adj
+
+def home_field_adjustment(is_home):
+    return 0.02 if is_home else 0.00
+
+def run_environment_score(team_name, is_home, home_team):
+    score = 0.50
+    score += starter_strength(team_name)
+    score += bullpen_strength(team_name)
+    score += lineup_strength(team_name)
+    score += home_field_adjustment(is_home)
+    score += park_factor_adjustment(home_team if is_home else None)
+    score += weather_adjustment()
+    return max(0.01, min(0.99, score))
+
+def win_probability_from_score(score):
+    return max(0.01, min(0.99, score))
+
 def main():
     print(f"Running MLB Handicapper - {datetime.now()}")
 
@@ -59,38 +103,52 @@ def main():
         commence = game.get("commence_time", "")
         bookmakers = game.get("bookmakers", [])
 
-        best_book = None
         best_market = None
+        best_book = None
 
         for bm in bookmakers:
             for market in bm.get("markets", []):
                 if market.get("key") == "h2h":
                     outcomes = market.get("outcomes", [])
                     if len(outcomes) >= 2:
-                        best_book = bm.get("title", "")
                         best_market = outcomes
+                        best_book = bm.get("title", "")
                         break
             if best_market:
                 break
 
-        if best_market and len(best_market) >= 2:
-            for outcome in best_market:
-                team_name = outcome.get("name", "")
-                team_odds = outcome.get("price", 0)
-                team_imp = implied_probability(team_odds)
+        if not best_market or len(best_market) < 2:
+            continue
 
-                rows.append({
-                    "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
-                    "game": f"{away} @ {home}",
-                    "market": "h2h",
-                    "team": team_name,
-                    "odds": team_odds,
-                    "stake": 1.0,
-                    "proj_edge": 0.0,
-                    "result": "pending",
-                    "clv": 0.0,
-                    "notes": f"book={best_book}, implied_prob={round(team_imp, 3)}"
-                })
+        game_rows = []
+        for outcome in best_market:
+            team_name = outcome.get("name", "")
+            team_odds = outcome.get("price", 0)
+            book_prob = implied_probability(team_odds)
+            is_home = normalize_team(team_name) == normalize_team(home)
+
+            score = run_environment_score(team_name, is_home, home)
+            model_prob = win_probability_from_score(score)
+            ev = expected_value_per_unit(model_prob, team_odds)
+            edge = model_prob - book_prob
+
+            game_rows.append({
+                "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
+                "game": f"{away} @ {home}",
+                "market": "h2h",
+                "team": team_name,
+                "odds": team_odds,
+                "stake": 1.0,
+                "model_prob": round(model_prob, 3),
+                "book_prob": round(book_prob, 3),
+                "proj_edge": round(edge * 100, 2),
+                "ev": round(ev, 4),
+                "result": "+EV" if ev > 0 else "skip",
+                "clv": 0.0,
+                "notes": f"book={best_book}"
+            })
+
+        rows.extend([r for r in game_rows if r["ev"] > 0])
 
     if not rows:
         rows = [{
@@ -98,12 +156,15 @@ def main():
             "game": "TEST GAME",
             "market": "h2h",
             "team": "TBD",
-            "odds": "No games returned",
+            "odds": "No +EV rows",
             "stake": 1.0,
+            "model_prob": 0.5,
+            "book_prob": 0.5,
             "proj_edge": 0.0,
+            "ev": 0.0,
             "result": "pending",
             "clv": 0.0,
-            "notes": "fallback row because no games were returned"
+            "notes": "fallback row because no +EV bets were found"
         }]
 
     df = pd.DataFrame(rows)
