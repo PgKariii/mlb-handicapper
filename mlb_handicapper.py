@@ -6,12 +6,17 @@ import os
 
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "YOUR_ODDS_API_KEY_HERE")
 
+def implied_probability(odds):
+    if odds < 0:
+        return abs(odds) / (abs(odds) + 100)
+    return 100 / (odds + 100)
+
 def get_mlb_odds():
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
     params = {
         "apiKey": ODDS_API_KEY,
         "regions": "us",
-        "markets": "h2h,totals",
+        "markets": "h2h",
         "oddsFormat": "american"
     }
     try:
@@ -42,22 +47,30 @@ def main():
         bookmakers = game.get("bookmakers", [])
 
         odds_text = ""
-        market_name = ""
-        pick_text = ""
+        pick_text = "TBD"
+        best_odds = None
+        best_name = None
+        pick_prob = None
 
         for bm in bookmakers:
-            markets = bm.get("markets", [])
-            for market in markets:
-                if market.get("key") in ["h2h", "totals"]:
-                    market_name = market.get("key")
+            for market in bm.get("markets", []):
+                if market.get("key") == "h2h":
                     outcomes = market.get("outcomes", [])
-                    if market_name == "h2h" and len(outcomes) >= 2:
-                        odds_text = f"{outcomes[0].get('name')} {outcomes[0].get('price')}, {outcomes[1].get('name')} {outcomes[1].get('price')}"
-                        pick_text = "TBD"
-                        break
-                    if market_name == "totals" and len(outcomes) >= 2:
-                        odds_text = f"Over {outcomes[0].get('price')}, Under {outcomes[1].get('price')}"
-                        pick_text = "TBD"
+                    if len(outcomes) >= 2:
+                        a = outcomes[0]
+                        b = outcomes[1]
+
+                        odds_text = f"{a.get('name')} {a.get('price')}, {b.get('name')} {b.get('price')}"
+
+                        if a.get("price", 0) > b.get("price", 0):
+                            best_name = a.get("name")
+                            best_odds = a.get("price")
+                        else:
+                            best_name = b.get("name")
+                            best_odds = b.get("price")
+
+                        pick_text = best_name
+                        pick_prob = round(implied_probability(best_odds), 3)
                         break
             if odds_text:
                 break
@@ -65,14 +78,14 @@ def main():
         row = {
             "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
             "game": f"{away} @ {home}",
-            "market": market_name if market_name else "H2H/Totals",
-            "pick": pick_text if pick_text else "TBD",
+            "market": "h2h",
+            "pick": pick_text,
             "odds": odds_text if odds_text else "No odds found",
             "stake": 1.0,
             "proj_edge": 0.0,
             "result": "pending",
             "clv": 0.0,
-            "notes": f"bookmakers={len(bookmakers)}"
+            "notes": f"bookmakers={len(bookmakers)}, pick_prob={pick_prob if pick_prob is not None else 'NA'}"
         }
         rows.append(row)
 
@@ -80,9 +93,9 @@ def main():
         rows = [{
             "date": datetime.now().strftime("%Y-%m-%d"),
             "game": "TEST GAME",
-            "market": "Total",
-            "pick": "Over",
-            "odds": -110,
+            "market": "h2h",
+            "pick": "TBD",
+            "odds": "No games returned",
             "stake": 1.0,
             "proj_edge": 0.0,
             "result": "pending",
