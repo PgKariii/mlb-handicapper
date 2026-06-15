@@ -1,0 +1,41 @@
+name: Daily MLB Handicapper
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Run daily at 8 AM EDT
+  workflow_dispatch:
+    # Allows manual run
+
+jobs:
+  run-handicapper:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run:
+          pip install -r requirements.txt
+      
+      - name: Create output folder
+        run:
+          mkdir -p output
+      
+      - name: Run MLB handicapper
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run:
+          python mlb_handicapper.py
+      
+      - name: Upload best bets CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlb-best-bets
+          path: output/mlb_best_bets_*.csv
+          retention-days: 30
