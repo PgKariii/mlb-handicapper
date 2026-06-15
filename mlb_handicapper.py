@@ -11,6 +11,19 @@ def implied_probability(odds):
         return abs(odds) / (abs(odds) + 100)
     return 100 / (odds + 100)
 
+def fair_probabilities(p1, p2):
+    total = p1 + p2
+    if total == 0:
+        return 0, 0
+    return p1 / total, p2 / total
+
+def expected_value_per_unit(prob, odds):
+    if odds < 0:
+        profit = 100 / abs(odds)
+    else:
+        profit = odds / 100
+    return prob * profit - (1 - prob)
+
 def get_mlb_odds():
     url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
     params = {
@@ -46,48 +59,59 @@ def main():
         commence = game.get("commence_time", "")
         bookmakers = game.get("bookmakers", [])
 
-        odds_text = ""
-        pick_text = "TBD"
-        best_odds = None
-        best_name = None
-        pick_prob = None
+        best_book = None
+        best_market = None
 
         for bm in bookmakers:
             for market in bm.get("markets", []):
                 if market.get("key") == "h2h":
                     outcomes = market.get("outcomes", [])
                     if len(outcomes) >= 2:
-                        a = outcomes[0]
-                        b = outcomes[1]
-
-                        odds_text = f"{a.get('name')} {a.get('price')}, {b.get('name')} {b.get('price')}"
-
-                        if a.get("price", 0) > b.get("price", 0):
-                            best_name = a.get("name")
-                            best_odds = a.get("price")
-                        else:
-                            best_name = b.get("name")
-                            best_odds = b.get("price")
-
-                        pick_text = best_name
-                        pick_prob = round(implied_probability(best_odds), 3)
+                        best_book = bm.get("title", "")
+                        best_market = outcomes
                         break
-            if odds_text:
+            if best_market:
                 break
 
-        row = {
-            "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
-            "game": f"{away} @ {home}",
-            "market": "h2h",
-            "pick": pick_text,
-            "odds": odds_text if odds_text else "No odds found",
-            "stake": 1.0,
-            "proj_edge": 0.0,
-            "result": "pending",
-            "clv": 0.0,
-            "notes": f"bookmakers={len(bookmakers)}, pick_prob={pick_prob if pick_prob is not None else 'NA'}"
-        }
-        rows.append(row)
+        if best_market and len(best_market) >= 2:
+            a = best_market[0]
+            b = best_market[1]
+
+            a_name = a.get("name", "")
+            b_name = b.get("name", "")
+            a_odds = a.get("price", 0)
+            b_odds = b.get("price", 0)
+
+            a_imp = implied_probability(a_odds)
+            b_imp = implied_probability(b_odds)
+            a_fair, b_fair = fair_probabilities(a_imp, b_imp)
+
+            if a_imp < b_imp:
+                pick_name = a_name
+                pick_odds = a_odds
+                fair_prob = a_fair
+                book_prob = a_imp
+            else:
+                pick_name = b_name
+                pick_odds = b_odds
+                fair_prob = b_fair
+                book_prob = b_imp
+
+            ev = expected_value_per_unit(fair_prob, pick_odds)
+
+            row = {
+                "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
+                "game": f"{away} @ {home}",
+                "market": "h2h",
+                "pick": pick_name,
+                "odds": pick_odds,
+                "stake": 1.0,
+                "proj_edge": round((fair_prob - book_prob) * 100, 2),
+                "result": "+EV" if ev > 0 else "-EV",
+                "clv": 0.0,
+                "notes": f"book={best_book}, fair_prob={round(fair_prob, 3)}, book_prob={round(book_prob, 3)}, ev={round(ev, 4)}"
+            }
+            rows.append(row)
 
     if not rows:
         rows = [{
