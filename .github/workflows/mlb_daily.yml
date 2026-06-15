@@ -19,13 +19,13 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip && pip install --no-cache-dir pandas==2.2.2
+        run: python -m pip install --upgrade pip && pip install --no-cache-dir requests==2.31.0 pandas==2.2.2 numpy==1.26.4
 
       - name: Create output folder
         run: mkdir -p output
 
       - name: Run MLB handicapper
-        run: python mlb_handicapper.py
+        run: ODDS_API_KEY="${{ secrets.ODDS_API_KEY }}" python mlb_handicapper.py
 
       - name: List output files
         run: ls -la output
