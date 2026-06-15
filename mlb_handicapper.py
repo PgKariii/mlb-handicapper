@@ -73,49 +73,24 @@ def main():
             if best_market:
                 break
 
-        if best_market and len(best_market) >= 2:
-            a = best_market[0]
-            b = best_market[1]
+                    if best_market and len(best_market) >= 2:
+                for outcome in best_market:
+                    team_name = outcome.get("name", "")
+                    team_odds = outcome.get("price", 0)
+                    team_imp = implied_probability(team_odds)
 
-            a_name = a.get("name", "")
-            b_name = b.get("name", "")
-            a_odds = a.get("price", 0)
-            b_odds = b.get("price", 0)
-
-            a_imp = implied_probability(a_odds)
-            b_imp = implied_probability(b_odds)
-            a_fair, b_fair = fair_probabilities(a_imp, b_imp)
-
-            if a_imp < b_imp:
-                pick_name = a_name
-                pick_odds = a_odds
-                fair_prob = a_fair
-                book_prob = a_imp
-            else:
-                pick_name = b_name
-                pick_odds = b_odds
-                fair_prob = b_fair
-                book_prob = b_imp
-
-            ev = expected_value_per_unit(fair_prob, pick_odds)
-
-            row = {
-                "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
-                "game": f"{away} @ {home}",
-                "market": "h2h",
-                "team": pick_name,
-                "odds": pick_odds,
-                "stake": 1.0,
-                "proj_edge": round((fair_prob - book_prob) * 100, 2),
-                "result": "+EV" if ev > 0 else "-EV",
-                "clv": 0.0,
-                "notes": f"book={best_book}, fair_prob={round(fair_prob, 3)}, book_prob={round(book_prob, 3)}, ev={round(ev, 4)}"
-            }
-            rows.append(row)
-
-        if best_market and len(best_market) >= 2:
-            for outcome in best_market:
-                rows.append({
+                    rows.append({
+                        "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
+                        "game": f"{away} @ {home}",
+                        "market": "h2h",
+                        "team": team_name,
+                        "odds": team_odds,
+                        "stake": 1.0,
+                        "proj_edge": 0.0,
+                        "result": "pending",
+                        "clv": 0.0,
+                        "notes": f"book={best_book}, implied_prob={round(team_imp, 3)}"
+                    })
                     "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
                     "game": f"{away} @ {home}",
                     "market": "h2h",
