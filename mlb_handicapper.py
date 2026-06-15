@@ -39,19 +39,41 @@ def main():
         home = game.get("home_team", "Unknown")
         away = game.get("away_team", "Unknown")
         commence = game.get("commence_time", "")
-        bookmakers = game.get("bookmakers", [])
+       bookmakers = game.get("bookmakers", [])
+odds_text = ""
+market_name = ""
+pick_text = ""
 
-        row = {
-            "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
-            "game": f"{away} @ {home}",
-            "market": "H2H/Totals",
-            "pick": "TBD",
-            "odds": "",
-            "stake": 1.0,
-            "proj_edge": 0.0,
-            "result": "pending",
-            "clv": 0.0,
-            "notes": f"bookmakers={len(bookmakers)}"
+for bm in bookmakers:
+    bm_name = bm.get("title", "")
+    markets = bm.get("markets", [])
+    for market in markets:
+        if market.get("key") in ["h2h", "totals"]:
+            market_name = market.get("key")
+            outcomes = market.get("outcomes", [])
+            if market_name == "h2h" and len(outcomes) >= 2:
+                odds_text = f"{outcomes[0].get('name')} {outcomes[0].get('price')}, {outcomes[1].get('name')} {outcomes[1].get('price')}"
+                pick_text = "TBD"
+                break
+            if market_name == "totals" and len(outcomes) >= 2:
+                odds_text = f"Over {outcomes[0].get('price')}, Under {outcomes[1].get('price')}"
+                pick_text = "TBD"
+                break
+    if odds_text:
+        break
+
+row = {
+    "date": commence[:10] if commence else datetime.now().strftime("%Y-%m-%d"),
+    "game": f"{away} @ {home}",
+    "market": market_name if market_name else "H2H/Totals",
+    "pick": pick_text if pick_text else "TBD",
+    "odds": odds_text if odds_text else "No odds found",
+    "stake": 1.0,
+    "proj_edge": 0.0,
+    "result": "pending",
+    "clv": 0.0,
+    "notes": f"bookmakers={len(bookmakers)}"
+}
         }
         rows.append(row)
 
