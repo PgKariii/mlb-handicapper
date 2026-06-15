@@ -120,19 +120,24 @@ def main():
     output_file = f"output/mlb_best_bets_{datetime.now().strftime('%Y%m%d')}.csv"
     Path("output").mkdir(exist_ok=True)
     
-    df = pd.DataFrame(best_bets) if best_bets else pd.DataFrame(
-        columns=["date", "game", "market", "pick", "odds", "stake", 
-                 "proj_edge", "result", "clv", "notes"]
-    )
+    if best_bets:
+        df = pd.DataFrame(best_bets)
+    else:
+        df = pd.DataFrame([{
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "game": "TEST GAME",
+            "market": "Total",
+            "pick": "Over",
+            "odds": -110,
+            "stake": 1.0,
+            "proj_edge": 0.0,
+            "result": "pending",
+            "clv": 0.0,
+            "notes": "test row so CSV is not empty"
+        }])
     
     df.to_csv(output_file, index=False)
     
     print(f"Found {len(best_bets)} +EV bets")
     print(f"Saved to: {output_file}")
-    
-    if best_bets:
-        print("\nBest Bets:")
-        print(df.to_string())
-
-if __name__ == "__main__":
-    main()
+    print(df.to_string(index=False))
